@@ -52,35 +52,30 @@ export default function LineChartComponent() {
           range: 5,
         });
 
+        const parseExcelDate = (num) => {
+          const excelEpoch = new Date(1899, 11, 30);
+          return new Date(excelEpoch.getTime() + num * 86400000);
+        };
+
+        const parseDDMMYYYY = (str) => {
+          const [day, month, year] = str.split("-").map(Number);
+          return new Date(year, month - 1, day);
+        };
+
+        const formatLocalDate = (date) =>
+          `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
         const formattedData = jsonData
-          .map((row,index) => {
+          .map((row) => {
             let dateVal = row["NAV Date"];
-            let navVal = row["NAV (Rs)"];
+            const navVal = Number(row["NAV (Rs)"]) || 0;
 
-            // If date is a number (Excel serial date)
-            if (typeof dateVal === "number") {
-              const excelEpoch = new Date(1899, 11, 30);
-              dateVal = new Date(excelEpoch.getTime() + dateVal * 86400000);
-            } else if (typeof dateVal === "string") {
-              // If date is in "DD-MM-YYYY" format
-              const parts = dateVal.split("-");
-              if (parts.length === 3) {
-                const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1; // month is 0-based
-                const year = parseInt(parts[2], 10);
-                dateVal = new Date(year, month, day);
-              }
-            }
+            if (typeof dateVal === "number") dateVal = parseExcelDate(dateVal);
+            else if (typeof dateVal === "string") dateVal = parseDDMMYYYY(dateVal);
 
-            // Skip invalid dates
-            if (isNaN(dateVal.getTime())) {
-              return null;
-            }
+            if (isNaN(dateVal.getTime())) return null;
 
-            return {
-              date: dateVal.toISOString().split("T")[0], // YYYY-MM-DD
-              nav: Number(navVal) || 0,
-            };
+            return { date: formatLocalDate(dateVal), nav: navVal };
           })
           .filter(Boolean);
 
